@@ -31,8 +31,8 @@ for index, row in ne_data.iterrows():
 
     actual_pop = pop * float(percent)/100
 
-    entry = pd.DataFrame([[geo_id, actual_pop]], columns=['geo_id', 'new_population'])
-    df.append(entry)
+    entry = {'geo_id': geo_id, 'new_population': actual_pop}
+    df = df.append(entry, ignore_index=True)
 
     # entry = {'geo_id': geo_id, 'new_population': actual_pop}
     # df.append(entry, ignore_index=True)
