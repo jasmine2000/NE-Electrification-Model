@@ -1,4 +1,6 @@
 import pandas as pd
+from pathlib import Path
+import os.path
 
 # filter population data
 population = pd.read_csv('population_data.csv')
@@ -15,28 +17,37 @@ for (columnName, columnData) in gas.iteritems():
     if columnName not in keep:
         gas = gas.drop(columnName, axis=1)
 
-# new dataset
-d = {'geo_id': [], 'new_population': []}
-df = pd.DataFrame(data=d)
+for state in ne:
+    state_data= ne_data[ne_data.STUSAB.isin([state])]
+    # new dataset
+    d = {'geo_id': [], 'new_population': []}
+    df = pd.DataFrame(data=d)
 
-for index, row in ne_data.iterrows():
-    geo_id = row['GEOID'][7:]
-    print(geo_id)
-    if str(geo_id)[0] == '0':
-        geo_id = geo_id[1:]
+    for index, row in state_data.iterrows():
+        geo_id = row['GEOID'][7:]
+        if str(geo_id)[0] == '0':
+            geo_id = geo_id[1:]
 
-    pop = row['ALUBE001']
-    
-    percent = gas.loc[gas['GEOID'] == geo_id, 'B25040_calc_pctUGE'].iloc[0]
+        pop = row['ALUBE001']
+        
+        try:
+            percent = gas.loc[gas['GEOID'] == geo_id, 'B25040_calc_pctUGE'].iloc[0]
+        except IndexError:
+            percent = 100
+            print(geo_id)
 
-    actual_pop = pop * float(percent)/100
+        actual_pop = round(pop * float(percent)/100, 2)
 
-    entry = {'geo_id': geo_id, 'new_population': actual_pop}
-    df = df.append(entry, ignore_index=True)
+        entry = {'geo_id': geo_id, 'new_population': actual_pop}
+        df = df.append(entry, ignore_index=True)
 
-    # entry = {'geo_id': geo_id, 'new_population': actual_pop}
-    # df.append(entry, ignore_index=True)
+    save_path = Path('./population_adjusted/')
+    save_path.mkdir(parents=True, exist_ok=True)
+    filename = str(state)+".csv"
+    completeName = os.path.join(save_path, filename)         
 
-    print(df.head())
+    df.to_csv(completeName, index=False)
 
     break
+
+
