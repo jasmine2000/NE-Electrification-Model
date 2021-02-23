@@ -57,7 +57,7 @@ for index, row in ne_data.iterrows():
         save_path = Path('./temp_data/')
         save_path.mkdir(parents=True, exist_ok=True)
         filename = str(geo_id)+".csv"
-        completeName = os.path.join(save_path, filename)         
+        completeName = os.path.join(save_path, filename)
 
         data.to_csv(completeName, index=False)
 
