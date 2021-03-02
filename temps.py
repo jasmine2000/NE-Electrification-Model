@@ -5,6 +5,7 @@ import json
 import os.path
 import time
 
+# filter coordinates to just NE data
 data = pd.read_csv("coordinates.csv")
 ne = ['CT', 'ME', 'MA', 'NH', 'NJ', 'NY', 'PA', 'RI', 'VT']
 ne_data= data[data.USPS.isin(ne)]
@@ -20,13 +21,16 @@ url = api_base + 'data/weather'
 
 count = 0
 
+# for every census tract
 for index, row in ne_data.iterrows():
     count += 1
     print(count)
 
+    # get name of geo id
     geo_id = row['GEOID']
     p = './temp_data/' + str(geo_id) + '.csv'
-    if os.path.exists(p):
+
+    if os.path.exists(p): # in case we already loaded this one
         continue
     else:
         lat = row['INTPTLAT']
@@ -40,7 +44,6 @@ for index, row in ne_data.iterrows():
             'dataset': 'merra2',
             'local_time': True,
             'var_t2m': True,
-            # 'var_prectotland': True,
             'format': 'json',
             'header': True
         }
@@ -61,6 +64,8 @@ for index, row in ne_data.iterrows():
 
         data.to_csv(completeName, index=False)
 
+        # with a free acct I only had a limited number of requests/minute and requests/day
+        # these allowed it to run in background
         if count % 50 == 0:
             time.sleep(3300)
         
