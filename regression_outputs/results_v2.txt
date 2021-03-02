@@ -1,0 +1,7 @@
+r_squared: 0.981
+group_one: 0.062402918131413763
+group_two: 0.9430898000494419
+group_three: 0.12715614026454025
+
+mean absolute error: 0.2064180165907885
+mean squared error: 0.06657252452558561

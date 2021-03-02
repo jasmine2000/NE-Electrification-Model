@@ -1,11 +1,10 @@
+import math
 import pandas as pd
-from pathlib import Path
-import matplotlib.pyplot as plt
+
 import os.path
+from pathlib import Path
+
 from sklearn.linear_model import LinearRegression
-from sklearn.svm import SVC, LinearSVC
-from sklearn import svm
-from sklearn.metrics import confusion_matrix, classification_report
 from sklearn.model_selection import train_test_split
 from sklearn import metrics
 
@@ -43,8 +42,14 @@ for geo_id in census_tracts:
     completeName = os.path.join(folder, str(geo_id)+".csv")
     hourly_data = pd.read_csv(completeName)
 
+    # get adjusted population for the census tract
+    pop = float(population_data.loc[population_data['geo_id'] == geo_id, 'new_population'].iloc[0])
+    if math.isnan(pop): # if data doesn't exist skip this census tract (should have minimam effect)
+        continue
+
     # iterate over hourly data for year 2019
     for index, row in hourly_data.iterrows():
+        # 'local_time' is in format '2019-01-01 00:00:00-05:00'
         year = int(row['local_time'][:4])
         month = int(row['local_time'][5:7])
         if year != 2019: # hourly data includes 12/31/2018- throw this out
@@ -52,7 +57,7 @@ for geo_id in census_tracts:
         
         temp = float(row['temperature'])
 
-        # define cutoff group that temperature falls in (see line 19-24)
+        # define cutoff group that temperature falls in (see line 18-23)
         group = None
         for cutoff in cutoffs:
             if temp < cutoff:
@@ -66,14 +71,18 @@ for geo_id in census_tracts:
 
         else: # calcuate heating degree hours and add to group
             hdh = 22.22 - temp
-            monthly_hdh[month][group] += hdh
-        
+            monthly_hdh[month][group] += round(hdh * pop, 4)
+
+
+# initialize save location
+output_folder = Path('./regression_outputs/')
+output_folder.mkdir(parents=True, exist_ok=True)
 
 # initialize empty dataframe to put data in
 d = {'group_one': [], 'group_two': [], 'group_three': [], 'y': []}
 df = pd.DataFrame(data=d)
 
-# data from eia.gov for monthly residential gas consumption
+# data from eia.gov for monthly residential gas consumption (unit is MMCF)
 y_vals = [9800, 8189, 7201, 3792, 2278, 1338, 1025, 933, 1066, 1974, 6140, 8492]
 
 # take aggregated data and put into dataframe along with y vals
@@ -83,17 +92,21 @@ for month in monthly_hdh:
     df = df.append(entry, ignore_index=True)
 
 # save copy of data
-df.to_csv('data.csv', index=False)
+data_path = os.path.join(output_folder, 'data.csv')  
+df.to_csv(data_path, index=False)
 
 # standardize data
 cols = list(df.columns)
 for col in cols:
     col_zscore = col + '_standardized'
-    df[col_zscore] = (df[col] - df[col].mean())/df[col].std(ddof=0)
+    df[col_zscore] = round((df[col] - df[col].mean())/df[col].std(ddof=0), 5)
 
 # drop unstandardized clumns (reference data.csv for these)
 df = df.drop(['group_one', 'group_two', 'group_three', 'y'], axis=1)
-df.to_csv('standardized_data.csv', index=False)
+
+# save standardized data
+s_data_path = os.path.join(output_folder, 'standardized_data.csv')  
+df.to_csv(s_data_path, index=False)
 
 # run regression
 X = df.drop(['y_standardized'], axis=1)
@@ -112,8 +125,9 @@ r_squared = str(round(reg.score(X, y), 3))
 coefficients = reg.coef_
 
 # write results into file
-# results.txt is regression on unsplit data
-results = open("results_2.txt","w+")
+# results_v1.txt is regression on unsplit data
+results_path = os.path.join(output_folder, 'results_v2.txt')  
+results = open(results_path,"w+")
 results.write('r_squared: ' + r_squared + '\n')
 results.write('group_one: ' + str(coefficients[0]) + '\n')
 results.write('group_two: ' + str(coefficients[1]) + '\n')
