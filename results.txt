@@ -1,3 +1,5 @@
+This file is results from regression before standardizing data and using train_test_split
+
 r_squared: 0.997
 group_one: 614.3862129632993
 group_two: 575.779147967693
